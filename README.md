@@ -8,6 +8,9 @@ SmartRoster solves the problem of manual schedule creation. It allows a manager 
 
 ![SmartRoster Interface Preview](./interface-preview.png)
 
+**File Excel (Output)**
+![SmartRoster Excel Output](./excel-preview.png)
+
 ## Key Features
 
 * **Simple Web Interface:** A clean single page (built with HTML & CSS) to input all data.
