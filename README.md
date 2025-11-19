@@ -1,5 +1,5 @@
 # SmartRoster
-
+a
 A web-based, automatic work schedule generator built with Python (Flask) and openpyxl.
 
 SmartRoster solves the problem of manual schedule creation. It allows a manager to input employees (with their target monthly hours) and the store's shift coverage needs. It then automatically generates a balanced Excel file based on a real calendar, featuring automatic weekend rotation.
