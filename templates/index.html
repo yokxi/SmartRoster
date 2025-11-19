@@ -1,148 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartRoster - Schedule Management</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 
-                         Helvetica, Arial, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-            margin: 0;
-            padding: 24px;
-        }
-
-        h1 {
-            color: #0056b3;
-            text-align: center;
-            font-weight: 600;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 20px auto;
-        }
-        
-        .form-layout {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-
-        .step-box {
-            background-color: #ffffff;
-            border-radius: 8px;
-            padding: 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            margin-bottom: 24px;
-        }
-        
-        .full-width {
-            grid-column: 1 / -1;
-        }
-
-        label {
-            font-size: 1.1em;
-            font-weight: 600;
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        p {
-            font-size: 0.9em;
-            color: #666;
-            margin-top: -4px;
-            margin-bottom: 12px;
-        }
-
-        textarea {
-            width: 100%;
-            height: 200px;
-            padding: 12px;
-            font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 1em;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: border-box;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        textarea:focus {
-            border-color: #0056b3;
-            box-shadow: 0 0 5px rgba(0,86,179,0.2);
-            outline: none;
-        }
-        
-        .period-selector {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .period-selector label {
-            margin-bottom: 0;
-            font-size: 1em;
-            font-weight: 500;
-        }
-        
-        select, input[type="number"] {
-            padding: 10px;
-            font-size: 1em;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            font-family: inherit;
-        }
-        
-        select:focus, input[type="number"]:focus {
-            border-color: #0056b3;
-            outline: none;
-        }
-
-        button[type="submit"] {
-            width: 100%;
-            background-color: #0056b3;
-            color: white;
-            font-size: 1.25em;
-            font-weight: 600;
-            padding: 16px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease;
-        }
-
-        button[type="submit"]:hover {
-            background-color: #004494;
-        }
-
-        button[type="submit"]:active {
-            transform: scale(0.99);
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono&display=swap"
+        rel="stylesheet">
 </head>
+
 <body>
 
-    <h1>SmartRoster Schedule Management</h1>
-
     <div class="container">
+        <header>
+            <h1>SmartRoster</h1>
+            <div class="subtitle">Intelligent Schedule Management System</div>
+        </header>
+
         <form action="/generate" method="post">
-            
-            <div class="form-layout">
-                
-                <div class="step-box">
-                    <label for="employees_input">1. Enter Employees</label>
-                    <p>Format: Name,MonthlyTargetHours</p>
-                    <textarea id="employees_input" name="employees_input">Anna,160
+
+            <div class="card">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="employees_input">1. Team Configuration</label>
+                        <div class="helper-text">Format: Name, MonthlyTargetHours</div>
+                        <textarea id="employees_input" name="employees_input" spellcheck="false">Anna,160
 Marco,160
 Luca,80
 Sara,160</textarea>
-                </div>
-                
-                <div class="step-box">
-                    <label for="schedule_input">2. Enter Shifts to Cover</label>
-                    <p>Format: Day,TimeSlot (e.g. 09:00 - 13:00),RequiredStaff</p>
-                    <textarea id="schedule_input" name="schedule_input">Monday,09:00 - 13:00,2
+                    </div>
+
+                    <div class="form-group">
+                        <label for="schedule_input">2. Shift Requirements</label>
+                        <div class="helper-text">Format: Day, TimeSlot, RequiredStaff</div>
+                        <textarea id="schedule_input" name="schedule_input" spellcheck="false">Monday,09:00 - 13:00,2
 Monday,13:00 - 18:00,1
 Tuesday,09:00 - 13:00,2
 Tuesday,13:00 - 18:00,1
@@ -155,38 +49,49 @@ Friday,13:00 - 18:00,1
 Saturday,10:00 - 14:00,2
 Saturday,14:00 - 19:00,2
 Sunday,10:00 - 14:00,1</textarea>
-                </div>
-                
-                <div class="step-box full-width">
-                    <label>3. Select Period</label>
-                    <div class="period-selector">
-                        <label for="month">Month:</label>
-                        <select id="month" name="month">
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11" selected>November</option>
-                            <option value="12">December</option>
-                        </select>
-                        
-                        <label for="year">Year:</label>
-                        <input type="number" id="year" name="year" value="2025" min="2024" max="2030">
                     </div>
                 </div>
+            </div>
 
+            <div class="card">
+                <div class="form-group full-width">
+                    <label>3. Period Selection</label>
+                    <div class="period-controls">
+                        <div class="control-group">
+                            <label for="month">Month:</label>
+                            <select id="month" name="month">
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11" selected>November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="year">Year:</label>
+                            <input type="number" id="year" name="year" value="2025" min="2024" max="2030">
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <button type="submit">Generate Calendar Schedule</button>
 
         </form>
+
+        <footer>
+            &copy; 2025 SmartRoster System. All rights reserved.
+        </footer>
     </div>
 
 </body>
+
 </html>
