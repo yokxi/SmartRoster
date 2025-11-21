@@ -48,7 +48,34 @@ def find_suitable_employee(employees, day_name, already_in_shift, current_week):
             
     return best_candidate
 
-def generate_and_transform_schedules(employees, schedules, year, month):
+def parse_holidays(text_input):
+    holidays = {}
+    try:
+        for line in text_input.strip().split('\n'):
+            line = line.strip()
+            if not line: continue
+            parts = line.split(',')
+            date_str = parts[0].strip()
+            
+            # Handle "CLOSED"
+            if len(parts) > 1 and parts[1].strip().upper() == "CLOSED":
+                holidays[date_str] = {"type": "CLOSED"}
+            elif len(parts) >= 3:
+                # Handle special shift: "DD/MM/YYYY, HH:MM - HH:MM, StaffCount"
+                shift = parts[1].strip()
+                staff = int(parts[2].strip())
+                if date_str not in holidays:
+                    holidays[date_str] = {"type": "SPECIAL", "shifts": []}
+                holidays[date_str]["shifts"].append({
+                    "shift": shift,
+                    "required_staff": staff
+                })
+    except Exception as e:
+        print(f"Error parsing holidays: {e}")
+        return {}
+    return holidays
+
+def generate_and_transform_schedules(employees, schedules, holidays, year, month):
     print(f"Starting schedule generation for {month}/{year}...")
     
     month_cal = calendar.monthcalendar(year, month)
@@ -70,40 +97,69 @@ def generate_and_transform_schedules(employees, schedules, year, month):
             current_day_name = day_names[day_index].capitalize()
             current_day_abbr = day_abbrs[day_index]
             
-            if current_day_name in schedules:
-                for shift_info in schedules[current_day_name]:
-                    current_shift = shift_info["shift"]
-                    required_staff = shift_info["required_staff"]
-                    shift_duration = calculate_shift_duration(current_shift)
+            # Format date for holiday lookup: DD/MM/YYYY
+            current_date_str = f"{day_date:02d}/{month:02d}/{year}"
+            
+            day_shifts = []
+            is_closed = False
+            
+            # Check for holidays/special dates
+            if current_date_str in holidays:
+                h_info = holidays[current_date_str]
+                if h_info["type"] == "CLOSED":
+                    is_closed = True
+                    store_view[(day_date, "CLOSED")] = "CLOSED"
+                elif h_info["type"] == "SPECIAL":
+                    day_shifts = h_info["shifts"]
+            
+            # If not closed and no special shifts, use standard schedule
+            if not is_closed and not day_shifts:
+                if current_day_name in schedules:
+                    day_shifts = schedules[current_day_name]
+            
+            if is_closed:
+                 for name in employee_view:
+                     employee_view[name].append({
+                        "day": day_date,
+                        "day_name": current_day_abbr,
+                        "shift": "CLOSED",
+                        "duration": 0
+                    })
+                 continue
+
+            for shift_info in day_shifts:
+                current_shift = shift_info["shift"]
+                required_staff = shift_info["required_staff"]
+                shift_duration = calculate_shift_duration(current_shift)
+                
+                assigned_names_list = []
+                
+                for _ in range(required_staff):
+                    chosen_employee = find_suitable_employee(
+                        employees, current_day_name, assigned_names_list, week_index
+                    )
                     
-                    assigned_names_list = []
-                    
-                    for _ in range(required_staff):
-                        chosen_employee = find_suitable_employee(
-                            employees, current_day_name, assigned_names_list, week_index
-                        )
+                    if chosen_employee:
+                        chosen_name = chosen_employee["name"]
+                        assigned_names_list.append(chosen_name)
                         
-                        if chosen_employee:
-                            chosen_name = chosen_employee["name"]
-                            assigned_names_list.append(chosen_name)
-                            
-                            employee_view[chosen_name].append({
-                                "day": day_date,
-                                "day_name": current_day_abbr,
-                                "shift": current_shift,
-                                "duration": shift_duration
-                            })
-                            
-                            for p in employees:
-                                if p["name"] == chosen_name:
-                                    p["hours_worked"] += shift_duration
-                                    if current_day_name in ["Saturday", "Sunday"]:
-                                        p["last_weekend_worked"] = week_index
-                                    break
-                        else:
-                            assigned_names_list.append("???")
-                    
-                    store_view[(day_date, current_shift)] = ", ".join(assigned_names_list)
+                        employee_view[chosen_name].append({
+                            "day": day_date,
+                            "day_name": current_day_abbr,
+                            "shift": current_shift,
+                            "duration": shift_duration
+                        })
+                        
+                        for p in employees:
+                            if p["name"] == chosen_name:
+                                p["hours_worked"] += shift_duration
+                                if current_day_name in ["Saturday", "Sunday"]:
+                                    p["last_weekend_worked"] = week_index
+                                break
+                    else:
+                        assigned_names_list.append("???")
+                
+                store_view[(day_date, current_shift)] = ", ".join(assigned_names_list)
 
     print("...Schedules calculated and transformed.")
     print("--- Monthly Hours Summary ---")
@@ -127,7 +183,9 @@ def create_daily_roster_excel(employee_view, employees, year, month):
     base_header_fill = PatternFill(start_color="003366", end_color="003366", fill_type="solid")
     header_font = Font(color="FFFFFF", bold=True)
     weekend_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+    closed_fill = PatternFill(start_color="FFCDD2", end_color="FFCDD2", fill_type="solid") # Light red for closed
     off_font = Font(color="888888")
+    closed_font = Font(color="B71C1C", bold=True)
     total_font = Font(bold=True)
     
     employee_header_colors = [
@@ -195,11 +253,14 @@ def create_daily_roster_excel(employee_view, employees, year, month):
             cell = ws.cell(row=current_row, column=col_idx)
             if shift_for_day:
                 cell.value = shift_for_day
+                if shift_for_day == "CLOSED":
+                    cell.fill = closed_fill
+                    cell.font = closed_font
             else:
                 cell.value = "OFF"
                 cell.font = off_font
             
-            if is_weekend:
+            if is_weekend and cell.value != "CLOSED":
                  cell.fill = weekend_fill
                 
         current_row += 1
@@ -272,14 +333,16 @@ def handle_generation():
     
     employee_text = request.form['employees_input']
     schedule_text = request.form['schedule_input']
+    holidays_text = request.form.get('holidays_input', '')
     month = int(request.form['month'])
     year = int(request.form['year'])
     
     employee_list = parse_employees(employee_text)
     schedule_coverage = parse_schedules(schedule_text)
+    holidays = parse_holidays(holidays_text)
     
     store_view, employee_view = generate_and_transform_schedules(
-        employee_list, schedule_coverage, year, month
+        employee_list, schedule_coverage, holidays, year, month
     )
     
     file_to_download, file_name = create_daily_roster_excel(
