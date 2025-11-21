@@ -34,36 +34,31 @@ Sara,160</textarea>
                     </div>
 
                     <div class="form-group">
-                        <label for="schedule_input">2. Shift Requirements</label>
-                        <div class="helper-text">Format: Day, TimeSlot, RequiredStaff</div>
-                        <textarea id="schedule_input" name="schedule_input" spellcheck="false">Monday,09:00 - 13:00,2
-Monday,13:00 - 18:00,1
-Tuesday,09:00 - 13:00,2
-Tuesday,13:00 - 18:00,1
-Wednesday,09:00 - 13:00,2
-Wednesday,13:00 - 18:00,1
-Thursday,09:00 - 13:00,2
-Thursday,13:00 - 18:00,1
-Friday,09:00 - 13:00,2
-Friday,13:00 - 18:00,1
-Saturday,10:00 - 14:00,2
-Saturday,14:00 - 19:00,2
-Sunday,10:00 - 14:00,1</textarea>
+                        <label>2. Shift Requirements</label>
+                        <div class="helper-text">Add shifts for each day.</div>
+
+                        <div id="schedule-container">
+                        </div>
+
+                        <button type="button" id="add-shift-btn" class="secondary-btn">+ Add Shift</button>
                     </div>
 
                     <div class="form-group">
-                        <label for="holidays_input">3. Holidays & Special Dates</label>
-                        <div class="helper-text">Format: DD/MM/YYYY, CLOSED <br> or DD/MM/YYYY, HH:MM - HH:MM, StaffCount</div>
-                        <textarea id="holidays_input" name="holidays_input" spellcheck="false" placeholder="Example:
-15/11/2025, CLOSED
-20/11/2025, 10:00 - 14:00, 1"></textarea>
+                        <label>3. Holidays & Special Dates</label>
+                        <div class="helper-text">Add holidays or special shifts.</div>
+
+                        <div id="holiday-container">
+                        </div>
+
+                        <button type="button" id="add-holiday-btn" class="secondary-btn">+ Add Holiday/Special
+                            Date</button>
                     </div>
                 </div>
             </div>
 
             <div class="card">
                 <div class="form-group full-width">
-                    <label>3. Period Selection</label>
+                    <label>4. Period Selection</label>
                     <div class="period-controls">
                         <div class="control-group">
                             <label for="month">Month:</label>
@@ -99,6 +94,221 @@ Sunday,10:00 - 14:00,1</textarea>
             &copy; 2025 SmartRoster System. All rights reserved.
         </footer>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const container = document.getElementById('schedule-container');
+            const addBtn = document.getElementById('add-shift-btn');
+
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+            const defaultShifts = [
+                { day: 'Monday', start: '09:00', end: '13:00', staff: 2 },
+                { day: 'Monday', start: '13:00', end: '18:00', staff: 1 },
+                { day: 'Tuesday', start: '09:00', end: '13:00', staff: 2 },
+                { day: 'Tuesday', start: '13:00', end: '18:00', staff: 1 },
+                { day: 'Wednesday', start: '09:00', end: '13:00', staff: 2 },
+                { day: 'Wednesday', start: '13:00', end: '18:00', staff: 1 },
+                { day: 'Thursday', start: '09:00', end: '13:00', staff: 2 },
+                { day: 'Thursday', start: '13:00', end: '18:00', staff: 1 },
+                { day: 'Friday', start: '09:00', end: '13:00', staff: 2 },
+                { day: 'Friday', start: '13:00', end: '18:00', staff: 1 },
+                { day: 'Saturday', start: '10:00', end: '14:00', staff: 2 },
+                { day: 'Saturday', start: '14:00', end: '19:00', staff: 2 },
+                { day: 'Sunday', start: '10:00', end: '14:00', staff: 1 }
+            ];
+
+            function createRow(data = null) {
+                const row = document.createElement('div');
+                row.className = 'schedule-row';
+                row.style.display = 'flex';
+                row.style.gap = '10px';
+                row.style.marginBottom = '10px';
+                row.style.alignItems = 'center';
+
+                const daySelect = document.createElement('select');
+                daySelect.name = 'day[]';
+                days.forEach(day => {
+                    const option = document.createElement('option');
+                    option.value = day;
+                    option.textContent = day;
+                    if (data && data.day === day) option.selected = true;
+                    daySelect.appendChild(option);
+                });
+
+                const startTime = document.createElement('input');
+                startTime.type = 'time';
+                startTime.name = 'start_time[]';
+                startTime.required = true;
+                if (data) startTime.value = data.start;
+
+                const sep = document.createElement('span');
+                sep.textContent = '-';
+
+                const endTime = document.createElement('input');
+                endTime.type = 'time';
+                endTime.name = 'end_time[]';
+                endTime.required = true;
+                if (data) endTime.value = data.end;
+
+                const staffCount = document.createElement('input');
+                staffCount.type = 'number';
+                staffCount.name = 'staff_count[]';
+                staffCount.placeholder = 'Staff';
+                staffCount.min = '1';
+                staffCount.style.width = '60px';
+                staffCount.required = true;
+                if (data) staffCount.value = data.staff;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.textContent = '×';
+                removeBtn.className = 'remove-btn';
+                removeBtn.style.background = '#ff4444';
+                removeBtn.style.color = 'white';
+                removeBtn.style.border = 'none';
+                removeBtn.style.borderRadius = '4px';
+                removeBtn.style.cursor = 'pointer';
+                removeBtn.style.padding = '0 8px';
+                removeBtn.onclick = function () {
+                    row.remove();
+                };
+
+                row.appendChild(daySelect);
+                row.appendChild(startTime);
+                row.appendChild(sep);
+                row.appendChild(endTime);
+                row.appendChild(staffCount);
+                row.appendChild(removeBtn);
+
+                return row;
+            }
+
+            defaultShifts.forEach(shift => {
+                container.appendChild(createRow(shift));
+            });
+
+            addBtn.addEventListener('click', () => {
+                container.appendChild(createRow());
+            });
+
+            const holidayContainer = document.getElementById('holiday-container');
+            const addHolidayBtn = document.getElementById('add-holiday-btn');
+
+            function createHolidayRow(data = null) {
+                const row = document.createElement('div');
+                row.className = 'holiday-row';
+                row.style.display = 'flex';
+                row.style.gap = '10px';
+                row.style.marginBottom = '10px';
+                row.style.alignItems = 'center';
+                row.style.flexWrap = 'wrap';
+
+                const dateInput = document.createElement('input');
+                dateInput.type = 'date';
+                dateInput.name = 'holiday_date[]';
+                dateInput.required = true;
+                dateInput.style.padding = '8px';
+                dateInput.style.fontSize = '16px';
+                if (data) dateInput.value = data.date;
+
+                const typeSelect = document.createElement('select');
+                typeSelect.name = 'holiday_type[]';
+                typeSelect.style.padding = '8px';
+                typeSelect.style.fontSize = '16px';
+                const typeClosed = document.createElement('option');
+                typeClosed.value = 'CLOSED';
+                typeClosed.textContent = 'Closed';
+                const typeSpecial = document.createElement('option');
+                typeSpecial.value = 'SPECIAL';
+                typeSpecial.textContent = 'Special Shift';
+                typeSelect.appendChild(typeClosed);
+                typeSelect.appendChild(typeSpecial);
+                if (data && data.type) typeSelect.value = data.type;
+
+                const specialContainer = document.createElement('div');
+                specialContainer.style.display = 'none';
+                specialContainer.style.gap = '10px';
+                specialContainer.style.alignItems = 'center';
+
+                const startTime = document.createElement('input');
+                startTime.type = 'time';
+                startTime.name = 'holiday_start[]';
+                startTime.style.padding = '8px';
+                startTime.style.fontSize = '16px';
+                if (data) startTime.value = data.start;
+
+                const sep = document.createElement('span');
+                sep.textContent = '-';
+                sep.style.fontSize = '16px';
+                sep.style.fontWeight = 'bold';
+
+                const endTime = document.createElement('input');
+                endTime.type = 'time';
+                endTime.name = 'holiday_end[]';
+                endTime.style.padding = '8px';
+                endTime.style.fontSize = '16px';
+                if (data) endTime.value = data.end;
+
+                const staffCount = document.createElement('input');
+                staffCount.type = 'number';
+                staffCount.name = 'holiday_staff[]';
+                staffCount.placeholder = 'Staff';
+                staffCount.min = '1';
+                staffCount.style.width = '80px';
+                staffCount.style.padding = '8px';
+                staffCount.style.fontSize = '16px';
+                if (data) staffCount.value = data.staff;
+
+                specialContainer.appendChild(startTime);
+                specialContainer.appendChild(sep);
+                specialContainer.appendChild(endTime);
+                specialContainer.appendChild(staffCount);
+
+                function toggleSpecial() {
+                    if (typeSelect.value === 'SPECIAL') {
+                        specialContainer.style.display = 'flex';
+                        startTime.required = true;
+                        endTime.required = true;
+                        staffCount.required = true;
+                    } else {
+                        specialContainer.style.display = 'none';
+                        startTime.required = false;
+                        endTime.required = false;
+                        staffCount.required = false;
+                    }
+                }
+                typeSelect.addEventListener('change', toggleSpecial);
+                if (data && data.type === 'SPECIAL') toggleSpecial();
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.textContent = '×';
+                removeBtn.className = 'remove-btn';
+                removeBtn.style.background = '#ff4444';
+                removeBtn.style.color = 'white';
+                removeBtn.style.border = 'none';
+                removeBtn.style.borderRadius = '4px';
+                removeBtn.style.cursor = 'pointer';
+                removeBtn.style.padding = '8px 12px';
+                removeBtn.style.fontSize = '16px';
+                removeBtn.onclick = function () {
+                    row.remove();
+                };
+
+                row.appendChild(dateInput);
+                row.appendChild(typeSelect);
+                row.appendChild(specialContainer);
+                row.appendChild(removeBtn);
+
+                return row;
+            }
+
+            addHolidayBtn.addEventListener('click', () => {
+                holidayContainer.appendChild(createHolidayRow());
+            });
+        });
+    </script>
 
 </body>
 

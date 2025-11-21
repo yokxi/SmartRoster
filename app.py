@@ -57,11 +57,9 @@ def parse_holidays(text_input):
             parts = line.split(',')
             date_str = parts[0].strip()
             
-            # Handle "CLOSED"
             if len(parts) > 1 and parts[1].strip().upper() == "CLOSED":
                 holidays[date_str] = {"type": "CLOSED"}
             elif len(parts) >= 3:
-                # Handle special shift: "DD/MM/YYYY, HH:MM - HH:MM, StaffCount"
                 shift = parts[1].strip()
                 staff = int(parts[2].strip())
                 if date_str not in holidays:
@@ -97,13 +95,11 @@ def generate_and_transform_schedules(employees, schedules, holidays, year, month
             current_day_name = day_names[day_index].capitalize()
             current_day_abbr = day_abbrs[day_index]
             
-            # Format date for holiday lookup: DD/MM/YYYY
             current_date_str = f"{day_date:02d}/{month:02d}/{year}"
             
             day_shifts = []
             is_closed = False
             
-            # Check for holidays/special dates
             if current_date_str in holidays:
                 h_info = holidays[current_date_str]
                 if h_info["type"] == "CLOSED":
@@ -112,7 +108,6 @@ def generate_and_transform_schedules(employees, schedules, holidays, year, month
                 elif h_info["type"] == "SPECIAL":
                     day_shifts = h_info["shifts"]
             
-            # If not closed and no special shifts, use standard schedule
             if not is_closed and not day_shifts:
                 if current_day_name in schedules:
                     day_shifts = schedules[current_day_name]
@@ -183,7 +178,7 @@ def create_daily_roster_excel(employee_view, employees, year, month):
     base_header_fill = PatternFill(start_color="003366", end_color="003366", fill_type="solid")
     header_font = Font(color="FFFFFF", bold=True)
     weekend_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
-    closed_fill = PatternFill(start_color="FFCDD2", end_color="FFCDD2", fill_type="solid") # Light red for closed
+    closed_fill = PatternFill(start_color="FFCDD2", end_color="FFCDD2", fill_type="solid") 
     off_font = Font(color="888888")
     closed_font = Font(color="B71C1C", bold=True)
     total_font = Font(bold=True)
@@ -332,14 +327,72 @@ def handle_generation():
     print("Received data from form!")
     
     employee_text = request.form['employees_input']
-    schedule_text = request.form['schedule_input']
-    holidays_text = request.form.get('holidays_input', '')
     month = int(request.form['month'])
     year = int(request.form['year'])
     
     employee_list = parse_employees(employee_text)
-    schedule_coverage = parse_schedules(schedule_text)
-    holidays = parse_holidays(holidays_text)
+    
+    days = request.form.getlist('day[]')
+    start_times = request.form.getlist('start_time[]')
+    end_times = request.form.getlist('end_time[]')
+    staff_counts = request.form.getlist('staff_count[]')
+    
+    schedule_coverage = {}
+    for i in range(len(days)):
+        day = days[i]
+        shift = f"{start_times[i]} - {end_times[i]}"
+        try:
+            staff = int(staff_counts[i])
+        except ValueError:
+            staff = 0
+            
+        if day not in schedule_coverage:
+            schedule_coverage[day] = []
+        schedule_coverage[day].append({
+            "shift": shift,
+            "required_staff": staff
+        })
+    
+    holiday_dates = request.form.getlist('holiday_date[]')
+    holiday_types = request.form.getlist('holiday_type[]')
+    holiday_starts = request.form.getlist('holiday_start[]')
+    holiday_ends = request.form.getlist('holiday_end[]')
+    holiday_staffs = request.form.getlist('holiday_staff[]')
+    
+    holidays = {}
+    
+    for i in range(len(holiday_dates)):
+        date_str_iso = holiday_dates[i] 
+        if not date_str_iso: continue
+        
+        try:
+            dt = datetime.strptime(date_str_iso, '%Y-%m-%d')
+            date_str = dt.strftime('%d/%m/%Y')
+        except ValueError:
+            continue
+            
+        h_type = holiday_types[i]
+        
+        if h_type == "CLOSED":
+            holidays[date_str] = {"type": "CLOSED"}
+        elif h_type == "SPECIAL":
+            start = holiday_starts[i]
+            end = holiday_ends[i]
+            try:
+                staff = int(holiday_staffs[i])
+            except (ValueError, IndexError):
+                staff = 1
+                
+            if date_str not in holidays:
+                holidays[date_str] = {"type": "SPECIAL", "shifts": []}
+            
+            if holidays[date_str].get("type") == "CLOSED":
+                 holidays[date_str] = {"type": "SPECIAL", "shifts": []}
+                 
+            holidays[date_str]["shifts"].append({
+                "shift": f"{start} - {end}",
+                "required_staff": staff
+            })
     
     store_view, employee_view = generate_and_transform_schedules(
         employee_list, schedule_coverage, holidays, year, month
